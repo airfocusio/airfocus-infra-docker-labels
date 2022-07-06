@@ -1,8 +1,10 @@
 import * as core from '@actions/core'
+import * as github from '@actions/github'
 import { extractMetadata } from './metadata'
 
 async function run() {
-  const metadata = await extractMetadata()
+  const token = core.getInput('github-token')
+  const metadata = await extractMetadata(token, github.context.payload?.head_commit?.id)
   core.setOutput('metadata', metadata)
   console.log(`Metadata:\n${JSON.stringify(metadata, undefined, 2)}`)
 }

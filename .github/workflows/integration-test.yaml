@@ -1,0 +1,22 @@
+name: Integration test
+
+on:
+  push:
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    steps:
+      - id: airfocus-infra-metadata
+        uses: airfocusio/airfocus-infra-metadata@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: docker-build
+        run: |
+          echo "FROM alpine:3.16" > Dockerfile
+          IFS=$'\n', LABELS=($(echo "$AIRFOCUS_INFRA_METADATA" | jq -r 'to_entries | map (["--label", .key, .value] | join("=")) | join("\n")'))
+          docker build -t test ${LABELS[@]} .
+        env:
+          AIRFOCUS_INFRA_METADATA: ${{ steps.airfocus-infra-metadata.outputs.metadata }}
+      - name: docker-inspect
+        run: docker inspect test | jq -r '.[0].Config.Labels'

@@ -1,36 +1,48 @@
-import * as core from '@actions/core'
 import * as github from '@actions/github'
+import { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods'
+import { unique } from './utils'
 
 type Octokit = ReturnType<typeof github.getOctokit>
+type Commit = RestEndpointMethodTypes['git']['getCommit']['response']
+type PullRequest = RestEndpointMethodTypes['pulls']['get']['response']
 
-interface Metadata {
+export interface Metadata {
   message: string
-  commit: string
   authors: string
+  commit: string
   pullRequests: string
+  pullRequestLabels: string
 }
 
-export async function extractMetadata(): Promise<Metadata> {
-  const token = core.getInput('github-token')
-  const octokit = github.getOctokit(token)
-  const { owner, repo } = github.context.repo
+const { owner, repo } = github.context.repo
 
-  const message = extractCommitMessageShort()
-  const commit = `https://github.com/${owner}/${repo}/commit/${github.context.payload?.head_commit.id}`
-  const authors = extractAuthorNames()
-  const pullRequests = await extractPullRequestNumbers(octokit).then(numbers =>
-    numbers.map(number => `https://github.com/${owner}/${repo}/pull/${number}`)
-  )
+export async function extractMetadata(token: string, commitId: string): Promise<Metadata> {
+  const octokit = github.getOctokit(token)
+
+  const commit = await getCommit(octokit, commitId)
+  const message = getCommitMessageShort(commit)
+  const authors = getAuthors(commit)
+  const pullRequests = await getPullRequests(octokit, commit)
+
   return {
     message,
-    commit,
     authors: authors.join(', '),
-    pullRequests: pullRequests.join(', '),
+    commit: commit.data.html_url,
+    pullRequests: pullRequests.map(pullRequest => pullRequest.data.html_url).join(', '),
+    pullRequestLabels: unique(pullRequests.flatMap(pullRequest => pullRequest.data.labels.map(l => l.name))).join(', '),
   }
 }
 
-function extractCommitMessageShort(): string {
-  const message: string = github.context.payload?.head_commit.message || ''
+async function getCommit(octokit: Octokit, commitId: string): Promise<Commit> {
+  return await octokit.rest.git.getCommit({
+    owner,
+    repo,
+    commit_sha: commitId,
+  })
+}
+
+function getCommitMessageShort(commit: Commit): string {
+  const message: string = commit.data.message
   return message
     .split('\n')[0]
     .replace(/\(#\d+\)|#\d+/g, '')
@@ -38,37 +50,31 @@ function extractCommitMessageShort(): string {
     .trim()
 }
 
-function extractAuthorNames(): string[] {
-  const commits = github.context.payload?.commits || []
-  const authorNames: string[] = [
-    github.context.payload?.head_commit.author.name,
-    ...commits.map(commit => commit.author.name || ''),
-  ]
-  return Array.from(new Set(authorNames.filter(authorName => !!authorName)))
+function getAuthors(commit: Commit): string[] {
+  const commits = [commit]
+  const authors: string[] = commits.map(commit => commit.data.author.name || '')
+  return Array.from(new Set(authors.filter(authorName => !!authorName)))
 }
 
-async function extractPullRequestNumbers(octokit: Octokit): Promise<number[]> {
-  const message: string = github.context.payload?.head_commit.message || ''
+async function getPullRequests(octokit: Octokit, commit: Commit): Promise<PullRequest[]> {
+  const message = commit.data.message
+  console.log(message)
   const match = message.match(/(#\d+)/gm)
   if (match) {
-    const issueOrPullNumbers = Array.from(new Set(match.map(str => parseInt(str.substring(1), 10)))).sort(
-      (a, b) => a - b
-    )
-    const pullRequestNumbers = await Promise.all(
+    const issueOrPullNumbers = unique(match.map(str => parseInt(str.substring(1), 10))).sort((a, b) => a - b)
+    return await Promise.all(
       issueOrPullNumbers.map(async pullNumber => {
         try {
-          await octokit.rest.pulls.get({
-            owner: github.context.repo.owner,
-            repo: github.context.repo.repo,
+          return await octokit.rest.pulls.get({
+            owner,
+            repo,
             pull_number: pullNumber,
           })
-          return pullNumber
         } catch (err) {
-          return 0
+          return undefined
         }
       })
     )
-    return pullRequestNumbers.filter(number => number > 0)
   }
   return []
 }
