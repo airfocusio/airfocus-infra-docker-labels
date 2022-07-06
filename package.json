@@ -1,0 +1,16 @@
+{
+  "name": "airfocus-infra-metdata",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "build": "ncc build index.ts --license licenses.txt"
+  },
+  "dependencies": {
+    "@actions/core": "^1.9.0",
+    "@actions/github": "^5.0.3"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.34.0",
+    "typescript": "^4.7.4"
+  }
+}

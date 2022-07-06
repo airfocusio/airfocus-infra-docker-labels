@@ -1,0 +1,12 @@
+name: git-ops-update metadata
+description: git-ops-update metadata
+inputs:
+  github-token:
+    description: The github token
+    required: true
+outputs:
+  metadata:
+    description: The metadata
+runs:
+  using: node16
+  main: dist/index.js
