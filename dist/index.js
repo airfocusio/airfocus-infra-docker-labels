@@ -8952,31 +8952,28 @@ exports.extractMetadata = void 0;
 var core = __nccwpck_require__(2186);
 var github = __nccwpck_require__(5438);
 function extractMetadata() {
-    var _a, _b;
+    var _a;
     return __awaiter(this, void 0, void 0, function () {
-        var token, octokit, _c, owner, repo, repositoryUrl, commitMessageShort, commitHash, commitUrl, authorNames, pullRequestNumbers, pullRequestUrls;
-        return __generator(this, function (_d) {
-            switch (_d.label) {
+        var token, octokit, _b, owner, repo, message, commit, authors, pullRequests;
+        return __generator(this, function (_c) {
+            switch (_c.label) {
                 case 0:
                     token = core.getInput('github-token');
                     octokit = github.getOctokit(token);
-                    _c = github.context.repo, owner = _c.owner, repo = _c.repo;
-                    repositoryUrl = "https://github.com/".concat(owner, "/").concat(repo);
-                    commitMessageShort = extractCommitMessageShort();
-                    commitHash = (_a = github.context.payload) === null || _a === void 0 ? void 0 : _a.head_commit.id;
-                    commitUrl = "https://github.com/".concat(owner, "/").concat(repo, "/commit/").concat((_b = github.context.payload) === null || _b === void 0 ? void 0 : _b.head_commit.id);
-                    authorNames = extractAuthorNames();
-                    return [4 /*yield*/, extractPullRequestNumbers(octokit)];
+                    _b = github.context.repo, owner = _b.owner, repo = _b.repo;
+                    message = extractCommitMessageShort();
+                    commit = "https://github.com/".concat(owner, "/").concat(repo, "/commit/").concat((_a = github.context.payload) === null || _a === void 0 ? void 0 : _a.head_commit.id);
+                    authors = extractAuthorNames();
+                    return [4 /*yield*/, extractPullRequestNumbers(octokit).then(function (numbers) {
+                            return numbers.map(function (number) { return "https://github.com/".concat(owner, "/").concat(repo, "/pull/").concat(number); });
+                        })];
                 case 1:
-                    pullRequestNumbers = _d.sent();
-                    pullRequestUrls = pullRequestNumbers.map(function (number) { return "https://github.com/".concat(owner, "/").concat(repo, "/pull/").concat(number); });
+                    pullRequests = _c.sent();
                     return [2 /*return*/, {
-                            repositoryUrl: repositoryUrl,
-                            commitMessageShort: commitMessageShort,
-                            commitHash: commitHash,
-                            commitUrl: commitUrl,
-                            authorNames: authorNames.join(', '),
-                            pullRequestUrls: pullRequestUrls.join(', '),
+                            message: message,
+                            commit: commit,
+                            authors: authors.join(', '),
+                            pullRequests: pullRequests.join(', '),
                         }];
             }
         });
@@ -8986,7 +8983,8 @@ exports.extractMetadata = extractMetadata;
 function extractCommitMessageShort() {
     var _a;
     var message = ((_a = github.context.payload) === null || _a === void 0 ? void 0 : _a.head_commit.message) || '';
-    return message.split('\n')[0]
+    return message
+        .split('\n')[0]
         .replace(/\(#\d+\)|#\d+/g, '')
         .replace(/"/g, '')
         .trim();
@@ -8994,7 +8992,9 @@ function extractCommitMessageShort() {
 function extractAuthorNames() {
     var _a, _b;
     var commits = ((_a = github.context.payload) === null || _a === void 0 ? void 0 : _a.commits) || [];
-    var authorNames = __spreadArray([(_b = github.context.payload) === null || _b === void 0 ? void 0 : _b.head_commit.author.name], commits.map(function (commit) { return commit.author.name || ''; }), true);
+    var authorNames = __spreadArray([
+        (_b = github.context.payload) === null || _b === void 0 ? void 0 : _b.head_commit.author.name
+    ], commits.map(function (commit) { return commit.author.name || ''; }), true);
     return Array.from(new Set(authorNames.filter(function (authorName) { return !!authorName; })));
 }
 function extractPullRequestNumbers(octokit) {
@@ -9006,7 +9006,7 @@ function extractPullRequestNumbers(octokit) {
             switch (_b.label) {
                 case 0:
                     message = ((_a = github.context.payload) === null || _a === void 0 ? void 0 : _a.head_commit.message) || '';
-                    match = message.match(/(#\d+)/mg);
+                    match = message.match(/(#\d+)/gm);
                     if (!match) return [3 /*break*/, 2];
                     issueOrPullNumbers = Array.from(new Set(match.map(function (str) { return parseInt(str.substring(1), 10); }))).sort(function (a, b) { return a - b; });
                     return [4 /*yield*/, Promise.all(issueOrPullNumbers.map(function (pullNumber) { return __awaiter(_this, void 0, void 0, function () {
