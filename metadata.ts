@@ -1,6 +1,6 @@
 import * as github from '@actions/github'
 import { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods'
-import { unique } from './utils'
+import { jsonSafeString, unique } from './utils'
 
 type Octokit = ReturnType<typeof github.getOctokit>
 type Commit = RestEndpointMethodTypes['git']['getCommit']['response']
@@ -23,13 +23,14 @@ export async function extractMetadata(token: string, commitId: string): Promise<
   const message = getCommitMessageShort(commit)
   const authors = getAuthors(commit)
   const pullRequests = await getPullRequests(octokit, commit)
+  const pullRequestLabels = unique(pullRequests.flatMap(pullRequest => pullRequest.data.labels.map(l => l.name)))
 
   return {
-    message,
-    authors: authors.join(', '),
+    message: jsonSafeString(message),
+    authors: authors.map(jsonSafeString).join(', '),
     commit: commit.data.html_url,
     pullRequests: pullRequests.map(pullRequest => pullRequest.data.html_url).join(', '),
-    pullRequestLabels: unique(pullRequests.flatMap(pullRequest => pullRequest.data.labels.map(l => l.name))).join(', '),
+    pullRequestLabels: pullRequestLabels.map(jsonSafeString).join(', '),
   }
 }
 
@@ -46,7 +47,6 @@ function getCommitMessageShort(commit: Commit): string {
   return message
     .split('\n')[0]
     .replace(/\(#\d+\)|#\d+/g, '')
-    .replace(/"/g, '')
     .trim()
 }
 
@@ -58,7 +58,6 @@ function getAuthors(commit: Commit): string[] {
 
 async function getPullRequests(octokit: Octokit, commit: Commit): Promise<PullRequest[]> {
   const message = commit.data.message
-  console.log(message)
   const match = message.match(/(#\d+)/gm)
   if (match) {
     const issueOrPullNumbers = unique(match.map(str => parseInt(str.substring(1), 10))).sort((a, b) => a - b)

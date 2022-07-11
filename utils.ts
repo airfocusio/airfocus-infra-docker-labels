@@ -7,3 +7,7 @@ export function unique<T>(items: T[]): T[] {
     }
   }, [])
 }
+
+export function jsonSafeString(str: string): string {
+  return str.replace(/"/g, '').replace(/'/g, '').replace(/\\/g, '')
+}
