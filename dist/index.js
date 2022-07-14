@@ -9069,7 +9069,10 @@ function unique(items) {
 }
 exports.unique = unique;
 function jsonSafeString(str) {
-    return str.replace(/"/g, '').replace(/'/g, '').replace(/\\/g, '');
+    return str
+        .replace(/["'\\,\{\}\[\]:\/]/g, ' ')
+        .replace(/ {2,}/g, ' ')
+        .trim();
 }
 exports.jsonSafeString = jsonSafeString;
 

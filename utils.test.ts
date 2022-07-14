@@ -9,5 +9,5 @@ it('unique', () => {
 
 it('jsonSafeString', () => {
   expect(jsonSafeString('')).toEqual('')
-  expect(jsonSafeString('foo "bar" \'apple\' \\pie\\')).toEqual('foo bar apple pie')
+  expect(jsonSafeString('foo "bar" \'apple\' \\pie\\ /bam/')).toEqual('foo bar apple pie bam')
 })

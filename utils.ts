@@ -9,5 +9,8 @@ export function unique<T>(items: T[]): T[] {
 }
 
 export function jsonSafeString(str: string): string {
-  return str.replace(/"/g, '').replace(/'/g, '').replace(/\\/g, '')
+  return str
+    .replace(/["'\\,\{\}\[\]:\/]/g, ' ')
+    .replace(/ {2,}/g, ' ')
+    .trim()
 }
