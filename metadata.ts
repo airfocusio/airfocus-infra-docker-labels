@@ -27,10 +27,10 @@ export async function extractMetadata(token: string, commitId: string): Promise<
 
   return {
     message: jsonSafeString(message),
-    authors: authors.map(jsonSafeString).join(', '),
+    authors: authors.map(jsonSafeString).join(' '),
     commit: commit.data.html_url,
-    pullRequests: pullRequests.map(pullRequest => pullRequest.data.html_url).join(', '),
-    pullRequestLabels: pullRequestLabels.map(jsonSafeString).join(', '),
+    pullRequests: pullRequests.map(pullRequest => pullRequest.data.html_url).join(' '),
+    pullRequestLabels: pullRequestLabels.map(jsonSafeString).join(' '),
   }
 }
 

@@ -8965,10 +8965,10 @@ function extractMetadata(token, commitId) {
                     pullRequestLabels = (0, utils_1.unique)(pullRequests.flatMap(function (pullRequest) { return pullRequest.data.labels.map(function (l) { return l.name; }); }));
                     return [2 /*return*/, {
                             message: (0, utils_1.jsonSafeString)(message),
-                            authors: authors.map(utils_1.jsonSafeString).join(', '),
+                            authors: authors.map(utils_1.jsonSafeString).join(' '),
                             commit: commit.data.html_url,
-                            pullRequests: pullRequests.map(function (pullRequest) { return pullRequest.data.html_url; }).join(', '),
-                            pullRequestLabels: pullRequestLabels.map(utils_1.jsonSafeString).join(', '),
+                            pullRequests: pullRequests.map(function (pullRequest) { return pullRequest.data.html_url; }).join(' '),
+                            pullRequestLabels: pullRequestLabels.map(utils_1.jsonSafeString).join(' '),
                         }];
             }
         });

@@ -7,6 +7,6 @@ it('extractMetadata', async () => {
     authors: 'Christian Hoffmeister',
     commit: 'https://github.com/airfocusio/airfocus-infra-metadata/commit/a55d822fdac3d2b4446217dc960a0d6cc217e412',
     pullRequests: 'https://github.com/airfocusio/airfocus-infra-metadata/pull/1',
-    pullRequestLabels: 'TEST 1, TEST 2',
+    pullRequestLabels: 'TEST 1 TEST 2',
   })
 })
