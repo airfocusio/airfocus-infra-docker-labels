@@ -12,6 +12,8 @@ export interface Metadata {
   commit: string
   pullRequests: string
   pullRequestLabels: string
+  'org.opencontainers.image.source': string
+  'org.opencontainers.image.revision': string
 }
 
 const { owner, repo } = github.context.repo
@@ -25,12 +27,18 @@ export async function extractMetadata(token: string, commitId: string): Promise<
   const pullRequests = await getPullRequests(octokit, commit)
   const pullRequestLabels = unique(pullRequests.flatMap(pullRequest => pullRequest.data.labels.map(l => l.name)))
 
+  const repoRegex = /^(https:\/\/github.com\/(?:[^\/]+)\/(?:[^\/]+))\//
+  const source = commit.data.html_url.match(repoRegex)?.[1] || ''
+  const revision = commit.data.sha || ''
+
   return {
     message: jsonSafeString(message),
     authors: authors.map(jsonSafeString).join(' '),
     commit: commit.data.html_url,
     pullRequests: pullRequests.map(pullRequest => pullRequest.data.html_url).join(' '),
     pullRequestLabels: pullRequestLabels.map(jsonSafeString).join(' '),
+    'org.opencontainers.image.source': source,
+    'org.opencontainers.image.revision': revision,
   }
 }
 
