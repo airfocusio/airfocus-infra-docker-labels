@@ -9615,12 +9615,11 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.extractMetadata = void 0;
 var github = __nccwpck_require__(5438);
-var utils_1 = __nccwpck_require__(691);
 var _a = github.context.repo, owner = _a.owner, repo = _a.repo;
 function extractMetadata(token, commitId) {
     var _a;
     return __awaiter(this, void 0, void 0, function () {
-        var octokit, commit, message, authors, pullRequests, pullRequestLabels, repoRegex, source, revision;
+        var octokit, commit, repoRegex, source, revision;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -9628,21 +9627,10 @@ function extractMetadata(token, commitId) {
                     return [4 /*yield*/, getCommit(octokit, commitId)];
                 case 1:
                     commit = _b.sent();
-                    message = getCommitMessageShort(commit);
-                    authors = getAuthors(commit);
-                    return [4 /*yield*/, getPullRequests(octokit, commit)];
-                case 2:
-                    pullRequests = _b.sent();
-                    pullRequestLabels = (0, utils_1.unique)(pullRequests.flatMap(function (pullRequest) { return pullRequest.data.labels.map(function (l) { return l.name; }); }));
                     repoRegex = /^(https:\/\/github.com\/(?:[^\/]+)\/(?:[^\/]+))\//;
                     source = ((_a = commit.data.html_url.match(repoRegex)) === null || _a === void 0 ? void 0 : _a[1]) || '';
                     revision = commit.data.sha || '';
                     return [2 /*return*/, {
-                            message: (0, utils_1.jsonSafeString)(message),
-                            authors: authors.map(utils_1.jsonSafeString).join(' '),
-                            commit: commit.data.html_url,
-                            pullRequests: pullRequests.map(function (pullRequest) { return pullRequest.data.html_url; }).join(' '),
-                            pullRequestLabels: pullRequestLabels.map(utils_1.jsonSafeString).join(' '),
                             'org.opencontainers.image.source': source,
                             'org.opencontainers.image.revision': revision,
                         }];
@@ -9665,92 +9653,6 @@ function getCommit(octokit, commitId) {
         });
     });
 }
-function getCommitMessageShort(commit) {
-    var message = commit.data.message;
-    return message
-        .split('\n')[0]
-        .replace(/\(#\d+\)|#\d+/g, '')
-        .trim();
-}
-function getAuthors(commit) {
-    var commits = [commit];
-    var authors = commits.map(function (commit) { return commit.data.author.name || ''; });
-    return Array.from(new Set(authors.filter(function (authorName) { return !!authorName; })));
-}
-function getPullRequests(octokit, commit) {
-    return __awaiter(this, void 0, void 0, function () {
-        var message, match, issueOrPullNumbers;
-        var _this = this;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    message = commit.data.message;
-                    match = message.match(/(#\d+)/gm);
-                    if (!match) return [3 /*break*/, 2];
-                    issueOrPullNumbers = (0, utils_1.unique)(match.map(function (str) { return parseInt(str.substring(1), 10); })).sort(function (a, b) { return a - b; });
-                    return [4 /*yield*/, Promise.all(issueOrPullNumbers.map(function (pullNumber) { return __awaiter(_this, void 0, void 0, function () {
-                            var err_1;
-                            return __generator(this, function (_a) {
-                                switch (_a.label) {
-                                    case 0:
-                                        _a.trys.push([0, 2, , 3]);
-                                        return [4 /*yield*/, octokit.rest.pulls.get({
-                                                owner: owner,
-                                                repo: repo,
-                                                pull_number: pullNumber,
-                                            })];
-                                    case 1: return [2 /*return*/, _a.sent()];
-                                    case 2:
-                                        err_1 = _a.sent();
-                                        return [2 /*return*/, undefined];
-                                    case 3: return [2 /*return*/];
-                                }
-                            });
-                        }); }))];
-                case 1: return [2 /*return*/, _a.sent()];
-                case 2: return [2 /*return*/, []];
-            }
-        });
-    });
-}
-
-
-/***/ }),
-
-/***/ 691:
-/***/ (function(__unused_webpack_module, exports) {
-
-"use strict";
-
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-        }
-    }
-    return to.concat(ar || Array.prototype.slice.call(from));
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.jsonSafeString = exports.unique = void 0;
-function unique(items) {
-    return items.reduce(function (acc, item) {
-        if (acc.indexOf(item) < 0) {
-            return __spreadArray(__spreadArray([], acc, true), [item], false);
-        }
-        else {
-            return acc;
-        }
-    }, []);
-}
-exports.unique = unique;
-function jsonSafeString(str) {
-    return str
-        .replace(/["'\\,\{\}\[\]:\/]/g, ' ')
-        .replace(/ {2,}/g, ' ')
-        .trim();
-}
-exports.jsonSafeString = jsonSafeString;
 
 
 /***/ }),

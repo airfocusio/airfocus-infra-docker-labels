@@ -1,17 +1,10 @@
 import * as github from '@actions/github'
 import { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods'
-import { jsonSafeString, unique } from './utils'
 
 type Octokit = ReturnType<typeof github.getOctokit>
 type Commit = RestEndpointMethodTypes['git']['getCommit']['response']
-type PullRequest = RestEndpointMethodTypes['pulls']['get']['response']
 
 export interface Metadata {
-  message: string
-  authors: string
-  commit: string
-  pullRequests: string
-  pullRequestLabels: string
   'org.opencontainers.image.source': string
   'org.opencontainers.image.revision': string
 }
@@ -22,21 +15,11 @@ export async function extractMetadata(token: string, commitId: string): Promise<
   const octokit = github.getOctokit(token)
 
   const commit = await getCommit(octokit, commitId)
-  const message = getCommitMessageShort(commit)
-  const authors = getAuthors(commit)
-  const pullRequests = await getPullRequests(octokit, commit)
-  const pullRequestLabels = unique(pullRequests.flatMap(pullRequest => pullRequest.data.labels.map(l => l.name)))
-
   const repoRegex = /^(https:\/\/github.com\/(?:[^\/]+)\/(?:[^\/]+))\//
   const source = commit.data.html_url.match(repoRegex)?.[1] || ''
   const revision = commit.data.sha || ''
 
   return {
-    message: jsonSafeString(message),
-    authors: authors.map(jsonSafeString).join(' '),
-    commit: commit.data.html_url,
-    pullRequests: pullRequests.map(pullRequest => pullRequest.data.html_url).join(' '),
-    pullRequestLabels: pullRequestLabels.map(jsonSafeString).join(' '),
     'org.opencontainers.image.source': source,
     'org.opencontainers.image.revision': revision,
   }
@@ -48,40 +31,4 @@ async function getCommit(octokit: Octokit, commitId: string): Promise<Commit> {
     repo,
     commit_sha: commitId,
   })
-}
-
-function getCommitMessageShort(commit: Commit): string {
-  const message: string = commit.data.message
-  return message
-    .split('\n')[0]
-    .replace(/\(#\d+\)|#\d+/g, '')
-    .trim()
-}
-
-function getAuthors(commit: Commit): string[] {
-  const commits = [commit]
-  const authors: string[] = commits.map(commit => commit.data.author.name || '')
-  return Array.from(new Set(authors.filter(authorName => !!authorName)))
-}
-
-async function getPullRequests(octokit: Octokit, commit: Commit): Promise<PullRequest[]> {
-  const message = commit.data.message
-  const match = message.match(/(#\d+)/gm)
-  if (match) {
-    const issueOrPullNumbers = unique(match.map(str => parseInt(str.substring(1), 10))).sort((a, b) => a - b)
-    return await Promise.all(
-      issueOrPullNumbers.map(async pullNumber => {
-        try {
-          return await octokit.rest.pulls.get({
-            owner,
-            repo,
-            pull_number: pullNumber,
-          })
-        } catch (err) {
-          return undefined
-        }
-      })
-    )
-  }
-  return []
 }
